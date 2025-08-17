@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2025年 中小企業経営支援レポート・ダッシュボード</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Harmony -->
+    <!-- Application Structure Plan: このSPAは、レポートの情報を単に羅列するのではなく、「課題の提示→解決策の探求」という論理的なユーザーフローを設計しています。まず冒頭でインタラクティブなグラフを用いて2025年に中小企業が直面する「三重苦」を視覚的に提示し、問題の深刻さを伝えます。次に、レポートの核である「4つの柱」をタブ形式のインターフェースで提示。これにより、ユーザーは4つの戦略を比較検討しながら、自身の関心に応じて深く掘り下げることができます。各柱の内部では、複雑なプロセス（例：伴走支援の3ステップ）をHTML/CSSによるダイアグラムで表現し、直感的な理解を促進します。この構造は、ユーザーが情報を能動的に探索し、各戦略間の繋がりを自ら発見することを促すため、受動的な読書体験よりも高い学習効果が期待できると判断しました。 -->
+    <!-- Visualization & Content Choices: 1. 景況感DIデータ -> ゴール:変化の可視化 -> Viz:折れ線グラフ -> 操作:ホバーで数値表示 -> 理由:2時点間の変化を最も明確に示せるため。ライブラリ:Chart.js。 2. 労働力不足・後継者不在率 -> ゴール:割合の提示 -> Viz:ドーナツグラフ -> 操作:ホバーで詳細表示 -> 理由:全体に対する割合を直感的に示すのに最適。ライブラリ:Chart.js。 3. 伴走支援・AI導入プロセス -> ゴール:手順の整理 -> Viz:HTML/CSSによるステップダイアグラム -> 操作:クリック/ホバーで詳細表示 -> 理由:SVGや画像を使わずに、インタラクティブで分かりやすいフローを表現できるため。 4. 事業承継オプション -> ゴール:比較 -> Viz:HTMLテーブル -> 操作:タブ切り替え -> 理由:複数の選択肢の長所/短所を体系的に比較するのに最も適した形式であるため。 -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #F8F9FA; /* Light neutral background */
+            color: #343A40;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .tab-active {
+            border-color: #3B82F6;
+            background-color: #EFF6FF;
+            color: #1E40AF;
+            font-weight: 700;
+        }
+        .tab-inactive {
+            border-color: transparent;
+            background-color: #F9FAFB;
+            color: #4B5563;
+        }
+        .content-active {
+            display: block;
+        }
+        .content-inactive {
+            display: none;
+        }
+        .pillar-card {
+            transition: all 0.3s ease-in-out;
+            cursor: pointer;
+        }
+        .pillar-card.active {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            border-color: #3B82F6;
+        }
+        .step-diagram > div {
+            transition: background-color 0.3s;
+        }
+        .step-diagram > div:hover {
+            background-color: #E0E7FF;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex-shrink-0">
+                    <h1 class="text-xl font-bold text-gray-800">2025年 経営支援レポート</h1>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#hero" class="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">トップ</a>
+                        <a href="#challenge" class="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">2025年の課題</a>
+                        <a href="#pillars" class="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">4つの柱</a>
+                        <a href="#conclusion" class="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">結論</a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section id="hero" class="bg-white py-16 sm:py-24">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">不確実性を乗り越え、持続的成長を実現する。</h2>
+                <p class="mt-6 text-lg leading-8 text-gray-600 max-w-3xl mx-auto">令和7年（2025年）、日本の中小企業は「脆弱な景気回復」「労働力不足」「事業承継」という三重苦に直面します。本レポートは、この時代を勝ち抜くための4つの統合戦略をインタラクティブに解説します。</p>
+            </div>
+        </section>
+
+        <section id="challenge" class="py-16 sm:py-24">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold text-gray-900">2025年を規定する構造的逆風</h2>
+                    <p class="mt-4 text-lg text-gray-600">データは、中小企業が直面する厳しい現実を浮き彫りにします。ここでは、主要な経済指標と構造的な課題を視覚化し、変革の必要性を探ります。</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+                    <div class="bg-white p-6 rounded-xl shadow-md">
+                        <h3 class="text-xl font-bold text-center mb-4">景況感の変化 (業況判断DI)</h3>
+                        <div class="chart-container">
+                            <canvas id="sentimentChart"></canvas>
+                        </div>
+                        <p class="text-sm text-gray-500 mt-4 text-center">景況感は回復基調にあるものの、国内消費の低迷(62.5%が不安視)や金利上昇リスクが足かせとなっています。</p>
+                    </div>
+                    <div class="space-y-8">
+                        <div class="bg-white p-6 rounded-xl shadow-md flex items-center gap-6">
+                            <div class="w-1/3">
+                                <div class="chart-container" style="height: 150px; max-height: 150px;">
+                                    <canvas id="laborShortageChart"></canvas>
+                                </div>
+                            </div>
+                            <div class="w-2/3">
+                                <h3 class="text-xl font-bold">深刻化する労働危機</h3>
+                                <p class="text-gray-600 mt-2">企業の半数以上が正社員不足を訴え、「人手不足倒産」は過去最多水準に。特に現業職での人材確保が困難を極めています。</p>
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl shadow-md flex items-center gap-6">
+                            <div class="w-1/3">
+                                <div class="chart-container" style="height: 150px; max-height: 150px;">
+                                    <canvas id="successionChart"></canvas>
+                                </div>
+                            </div>
+                            <div class="w-2/3">
+                                <h3 class="text-xl font-bold">待ったなしの事業承継</h3>
+                                <p class="text-gray-600 mt-2">70歳以上の経営者のうち約半数が後継者未定。放置すれば最大で約22兆円のGDPが失われる可能性があります。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="pillars" class="bg-white py-16 sm:py-24">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold text-gray-900">持続的成長を実現する4つの柱</h2>
+                    <p class="mt-4 text-lg text-gray-600">これらの課題を克服し、強靭な経営基盤を築くためには、4つの戦略を統合的に推進することが不可欠です。各柱をクリックして詳細をご覧ください。</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div id="pillar-card-1" class="pillar-card p-6 border-2 border-gray-200 rounded-lg text-center bg-gray-50 active" onclick="showPillar(1)">
+                        <div class="text-4xl mb-3">🏗️</div>
+                        <h3 class="text-lg font-bold">経営の設計図</h3>
+                        <p class="text-sm text-gray-600">属人経営から脱却する</p>
+                    </div>
+                    <div id="pillar-card-2" class="pillar-card p-6 border-2 border-gray-200 rounded-lg text-center bg-gray-50" onclick="showPillar(2)">
+                        <div class="text-4xl mb-3">👥</div>
+                        <h3 class="text-lg font-bold">人的資本の活性化</h3>
+                        <p class="text-sm text-gray-600">「人」への投資を価値に変える</p>
+                    </div>
+                    <div id="pillar-card-3" class="pillar-card p-6 border-2 border-gray-200 rounded-lg text-center bg-gray-50" onclick="showPillar(3)">
+                        <div class="text-4xl mb-3">🤖</div>
+                        <h3 class="text-lg font-bold">AIの戦略的活用</h3>
+                        <p class="text-sm text-gray-600">生産性と意思決定を高度化</p>
+                    </div>
+                    <div id="pillar-card-4" class="pillar-card p-6 border-2 border-gray-200 rounded-lg text-center bg-gray-50" onclick="showPillar(4)">
+                        <div class="text-4xl mb-3">🤝</div>
+                        <h3 class="text-lg font-bold">計画的事業承継</h3>
+                        <p class="text-sm text-gray-600">次世代へ事業をつなぐ</p>
+                    </div>
+                </div>
+
+                <div id="pillar-content-container" class="bg-white p-8 rounded-xl shadow-lg min-h-[400px]">
+                    <div id="pillar-content-1" class="pillar-content">
+                        <h3 class="text-2xl font-bold mb-4">第1の柱：強靭な経営の「設計図」を創る</h3>
+                        <p class="text-gray-700 mb-6">経営者個人の能力に依存する「属人経営」から脱却し、誰が担っても成長可能な「仕組み」を構築します。これは事業の持続性を確保する上で最も重要なステップです。</p>
+                        <div class="step-diagram grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                            <div class="p-4 border rounded-lg bg-blue-50">
+                                <div class="font-bold text-blue-700">STEP 1</div>
+                                <h4 class="font-semibold my-2">ビジョンの言語化</h4>
+                                <p class="text-sm text-gray-600">経営者の想いをMVV（ミッション・ビジョン・バリュー）として明確な言葉にし、組織の羅針盤を創ります。</p>
+                            </div>
+                            <div class="p-4 border rounded-lg bg-blue-50">
+                                <div class="font-bold text-blue-700">STEP 2</div>
+                                <h4 class="font-semibold my-2">現状の「見える化」</h4>
+                                <p class="text-sm text-gray-600">財務、販売、生産等のデータをBIツールで可視化し、勘や経験に頼らない客観的な現状把握を行います。</p>
+                            </div>
+                            <div class="p-4 border rounded-lg bg-blue-50">
+                                <div class="font-bold text-blue-700">STEP 3</div>
+                                <h4 class="font-semibold my-2">AIによる計画策定</h4>
+                                <p class="text-sm text-gray-600">理想と現状のギャップをAIで分析し、客観的なデータに基づいた3カ年事業計画を策定します。</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="pillar-content-2" class="pillar-content hidden">
+                        <h3 class="text-2xl font-bold mb-4">第2の柱：人的資本の活性化</h3>
+                        <p class="text-gray-700 mb-6">従業員をコストではなく価値創造の源泉と捉え、その能力を最大限に引き出す戦略的人事を構築します。優秀な人材から「選ばれる」企業になることが目標です。</p>
+                        <ul class="space-y-4">
+                            <li class="flex items-start">
+                                <span class="text-blue-500 mr-3 mt-1">✓</span>
+                                <div><strong class="font-semibold">公正な評価制度：</strong>客観的な基準（クリニカルラダー等）や360度評価を導入し、努力と成果が報われる仕組みを構築します。</div>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-blue-500 mr-3 mt-1">✓</span>
+                                <div><strong class="font-semibold">キャリアパス設計：</strong>マネジメント職と専門職などの複線的キャリアパスを用意し、多様な人材の成長を支援します。</div>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-blue-500 mr-3 mt-1">✓</span>
+                                <div><strong class="font-semibold">継続的な学習文化：</strong>体系的なOJTやオンライン学習プラットフォームを活用し、社員が常にスキルアップできる環境を醸成します。</div>
+                            </li>
+                        </ul>
+                    </div>
+                    <div id="pillar-content-3" class="pillar-content hidden">
+                        <h3 class="text-2xl font-bold mb-4">第3の柱：AIの戦略的活用</h3>
+                        <p class="text-gray-700 mb-6">AIは、限られたリソースで生産性を飛躍的に向上させるための強力な武器です。「スモールスタート・スケールアップ」のアプローチで段階的に導入します。</p>
+                        <div class="relative border-l-2 border-blue-200 ml-4 pl-8 py-4">
+                            <div class="mb-8 relative">
+                                <div class="absolute -left-[42px] top-1 w-6 h-6 bg-blue-500 rounded-full border-4 border-white"></div>
+                                <h4 class="font-bold">フェーズ1：定型業務の自動化</h4>
+                                <p class="text-sm text-gray-600">報告書作成、議事録要約、問い合わせ対応などを生成AIで自動化し、即座に効果を実感します。</p>
+                            </div>
+                            <div class="mb-8 relative">
+                                <div class="absolute -left-[42px] top-1 w-6 h-6 bg-blue-500 rounded-full border-4 border-white"></div>
+                                <h4 class="font-bold">フェーズ2：データドリブン経営</h4>
+                                <p class="text-sm text-gray-600">販売データや市場トレンドをAIで分析し、勘や経験に頼らない客観的な意思決定を支援します。</p>
+                            </div>
+                            <div class="relative">
+                                <div class="absolute -left-[42px] top-1 w-6 h-6 bg-blue-500 rounded-full border-4 border-white"></div>
+                                <h4 class="font-bold">フェーズ3：中核プロセスへの統合</h4>
+                                <p class="text-sm text-gray-600">品質検査の自動化や個別化された商品推薦など、AIを競争優位性を生む中核技術として活用します。</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="pillar-content-4" class="pillar-content hidden">
+                        <h3 class="text-2xl font-bold mb-4">第4の柱：計画的事業承継</h3>
+                        <p class="text-gray-700 mb-6">事業承継は、企業の価値を次世代に繋ぐための戦略的マネジメントです。成功の鍵は、5〜10年かけた計画的な「企業の磨き上げ」にあります。</p>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-gray-100">
+                                        <th class="p-3 font-semibold">承継方法</th>
+                                        <th class="p-3 font-semibold">主な利点</th>
+                                        <th class="p-3 font-semibold">主なリスク</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="border-b">
+                                        <td class="p-3 font-medium">親族内承継</td>
+                                        <td class="p-3 text-sm">経営理念の維持が容易。内外関係者から受け入れられやすい。</td>
+                                        <td class="p-3 text-sm">後継者の意欲・能力不足。相続トラブル。</td>
+                                    </tr>
+                                    <tr class="border-b">
+                                        <td class="p-3 font-medium">従業員承継</td>
+                                        <td class="p-3 text-sm">業務や社風への理解が深い。従業員の士気向上。</td>
+                                        <td class="p-3 text-sm">株式取得資金の調達難。経営者としての資質不足。</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-3 font-medium">第三者承継 (M&A)</td>
+                                        <td class="p-3 text-sm">後継者不在問題を解決。創業者利益の実現。</td>
+                                        <td class="p-3 text-sm">企業文化の衝突。希望条件のミスマッチ。</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                         <p class="text-sm text-gray-600 mt-4">全国の「事業承継・引継ぎ支援センター」などの公的機関を積極的に活用することが成功への近道です。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="conclusion" class="py-16 sm:py-24">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="bg-blue-600 text-white p-8 md:p-12 rounded-2xl text-center">
+                    <h2 class="text-3xl font-bold">結論：4つの柱は一つの統合システム</h2>
+                    <p class="mt-4 text-lg max-w-4xl mx-auto">
+                        「経営の設計図」「人的資本」「AI活用」「事業承継」は、個別の施策ではありません。これらは相互に連携し、補完し合う一つの統合された経営システムです。
+                        経営の見える化が公正な人事を可能にし、活性化された人材がAIを使いこなし、その結果として磨き上げられた企業価値が円滑な事業承継を実現します。
+                        優れた経営こそが、最も優れた事業承継対策なのです。
+                    </p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-white mt-16">
+        <div class="container mx-auto py-6 px-4 sm:px-6 lg:px-8 text-center text-gray-500 text-sm">
+            <p>&copy; 2025 中小企業経営支援レポート・ダッシュボード. All Rights Reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const sentimentCtx = document.getElementById('sentimentChart').getContext('2d');
+            new Chart(sentimentCtx, {
+                type: 'line',
+                data: {
+                    labels: ['2024年 (実績)', '2025年 (見通し)'],
+                    datasets: [
+                        {
+                            label: '業況判断DI',
+                            data: [-4.7, 8.3],
+                            borderColor: '#3B82F6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            fill: true,
+                            tension: 0.1
+                        },
+                        {
+                            label: '売上高DI',
+                            data: [1.2, 16.0],
+                            borderColor: '#10B981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            fill: true,
+                            tension: 0.1
+                        },
+                        {
+                            label: '経常利益額DI',
+                            data: [-6.8, 8.8],
+                            borderColor: '#F59E0B',
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                            fill: true,
+                            tension: 0.1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: { display: true, text: 'DI値' }
+                        }
+                    },
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${context.raw}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            const laborShortageCtx = document.getElementById('laborShortageChart').getContext('2d');
+            new Chart(laborShortageCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['正社員が不足', '不足していない'],
+                    datasets: [{
+                        data: [53.4, 46.6],
+                        backgroundColor: ['#EF4444', '#D1D5DB'],
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        title: { display: true, text: '正社員不足の企業割合', position: 'bottom' }
+                    }
+                }
+            });
+
+            const successionCtx = document.getElementById('successionChart').getContext('2d');
+            new Chart(successionCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['後継者未定', '後継者あり'],
+                    datasets: [{
+                        data: [50, 50],
+                        backgroundColor: ['#F59E0B', '#D1D5DB'],
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        title: { display: true, text: '70歳以上経営者の後継者状況', position: 'bottom' }
+                    }
+                }
+            });
+
+            const navLinks = document.querySelectorAll('nav a');
+            navLinks.forEach(link => {
+                link.addEventListener('click', e => {
+                    e.preventDefault();
+                    const targetId = e.currentTarget.getAttribute('href');
+                    const targetElement = document.querySelector(targetId);
+                    if (targetElement) {
+                        targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                });
+            });
+        });
+
+        function showPillar(pillarNum) {
+            const contents = document.querySelectorAll('.pillar-content');
+            contents.forEach(content => {
+                content.classList.add('hidden');
+            });
+
+            const cards = document.querySelectorAll('.pillar-card');
+            cards.forEach(card => {
+                card.classList.remove('active');
+            });
+
+            document.getElementById(`pillar-content-${pillarNum}`).classList.remove('hidden');
+            document.getElementById(`pillar-card-${pillarNum}`).classList.add('active');
+        }
+    </script>
+</body>
+</html>
